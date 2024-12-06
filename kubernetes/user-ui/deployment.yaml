@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-ui
+  Namespace: user
+  labels:
+    app: user-ui
+spec:
+  selector:
+    matchLabels:
+      app: user-ui
+  template:
+    metadata:
+      labels:
+        app: user-ui
+    spec:
+      containers:
+      - name: userui
+        image: kasinenichandu/user-ui
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "1Gi"
+          limits:
+            cpu: "500m"
+            memory: "2Gi"
+        ports:
+        - containerPort: 3000

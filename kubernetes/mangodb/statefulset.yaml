@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mystatefulset
+  Namespace: database
+  labels:
+    app: app-db
+spec:
+  selector:
+    matchLabels:
+      app: app-db
+  serviceName: mongodb
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-db
+    spec:
+      containers:
+      - name: mangodb
+        image: mongo
+        ports:
+        - containerPort: 8081
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-db-secrets
+                key: dbuser
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-db-secrets
+                key: dbpass
+        volumeMounts:
+        - name: mangodb
+          mountPath: /data/db
+  volumeClaimTemplates:
+  - metadata:
+      name: mangodb
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
