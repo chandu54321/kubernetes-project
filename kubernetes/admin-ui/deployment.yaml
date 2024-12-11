@@ -1,22 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: userui
+  name: admin-ui
   namespace: admin
   labels:
-    app: ad-ui
+    app: admin-ui
 spec:
   selector:
     matchLabels:
-      app: ad-ui
+      app: admin-ui
   template:
     metadata:
       labels:
-        app: ad-ui
+        app: admin-ui
     spec:
+      volumes:
+        - name: admin-ui-vl
+          configMap:
+            name: admin-ui-cm
       containers:
-      - name: usersui
-        image: kasinenichandu/admin-ui
+      - image: kasinenichandu/admin-ui
+        name: admin-ui
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+        ports:
+        - containerPort: 3000
+          name: http
         resources:
           requests:
             cpu: "250m"
@@ -24,5 +35,19 @@ spec:
           limits:
             cpu: "500m"
             memory: "2Gi"
-        ports:
-        - containerPort: 3000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 90
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+        volumeMounts:
+          - name: admin-ui-vl
+            mountPath: /app/.env
+            subPath: .env

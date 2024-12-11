@@ -1,23 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: adminapi
-  namespace: admin
+  name: admin-api
   labels:
-    app: add-api
+    name:  admin-api
+  namespace: admin
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: add-api
+      app: admin-api
   template:
     metadata:
       labels:
-        app: add-api
+        app: admin-api
     spec:
+      nodeSelector:
+         eks.amazonaws.com/nodegroup: secondgroup
       containers:
-      - name: adminapi
-        image: kasinenichandu/admin-api
+      - image: kasinenichandu/admin-api
+        name: admin-api
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+        ports:
+        - containerPort: 1025
+          name: http
+        env:
+          - name: MONGO_URL
+            valueFrom:
+              secretKeyRef:
+                name: admin-api-secrets
+                key: connectionstring
+          - name: PORT 
+            value: "1025"
         resources:
           requests:
             cpu: "250m"
@@ -25,9 +41,17 @@ spec:
           limits:
             cpu: "500m"
             memory: "2Gi"
-          env:
-
-        ports:
-        - containerPort: 1025
-
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 1025
+          initialDelaySeconds: 90
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 1025
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+        
       

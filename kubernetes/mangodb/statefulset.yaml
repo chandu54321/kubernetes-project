@@ -1,26 +1,27 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mystatefulset
-  Namespace: database
-  labels:
-    app: app-db
+  name: mongo-db
+  namespace: database
 spec:
   selector:
     matchLabels:
-      app: app-db
-  serviceName: mongodb
+      app: mongo-db
+  serviceName: mongo-db-svc
   replicas: 1
   template:
     metadata:
       labels:
-        app: app-db
+        app: mongo-db
     spec:
+      nodeSelector:
+        eks.amazonaws.com/nodegroup: thirdgroup
       containers:
-      - name: mangodb
+      - name: mongo-db
         image: mongo
         ports:
-        - containerPort: 8081
+        - containerPort: 27017
+          name: dbport
         env:
           - name: MONGO_INITDB_ROOT_USERNAME
             valueFrom:
@@ -32,14 +33,25 @@ spec:
               secretKeyRef:
                 name: mongo-db-secrets
                 key: dbpass
-        volumeMounts:
-        - name: mangodb
-          mountPath: /data/db
-  volumeClaimTemplates:
-  - metadata:
-      name: mangodb
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 1Gi
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits: 
+            memory: "8Gi"
+            cpu: "1500m"
+        readinessProbe:
+          tcpSocket:
+            port: 27017
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+              - mongo
+              - --eval
+              - db.adminCommand('ping')
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+          periodSeconds: 5
